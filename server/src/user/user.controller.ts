@@ -14,7 +14,9 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CreateUserDto } from './dto/create-user.dto';
-import { GetUserDto } from './dto/get-user.dto';
+import { EditLastNameDto } from './dto/edit-firstname.dto';
+import { EditFirstNameDto } from './dto/edit-lastname.dto';
+import { FindUserDto } from './dto/find-user.dto';
 import { UsersService } from './user.service';
 
 @Controller('/')
@@ -28,8 +30,9 @@ export class UsersController {
   }
 
   @Delete('/user')
-  deleteUser(@Body() userEmail: string) {
-    return this.usersService.deleteUser(userEmail);
+  @HttpCode(HttpStatus.OK)
+  deleteUser(@Body() user: FindUserDto) {
+    return this.usersService.deleteUser(user.email);
   }
 
   @Post('/user/image')
@@ -38,40 +41,43 @@ export class UsersController {
   uploadUserImage(
     @UploadedFile(
       new ParseFilePipe({
-        validators: [
-          new FileTypeValidator({ fileType: /(jpg|jpeg|png|gif)$/ }),
-        ],
+        validators: [new FileTypeValidator({ fileType: /(jpg|jpeg|png)$/ })],
       }),
     )
     image: Express.Multer.File,
-    @Body() user: GetUserDto,
+    @Body() user: FindUserDto,
   ) {
-    console.log(image);
-    console.log(user);
     return this.usersService.setUserImage(user.email, image);
   }
 
   @Post('/user/pdf')
   @HttpCode(HttpStatus.OK)
-  createUserPdf(@Body() user: GetUserDto) {
-    console.log(user);
-    return this.usersService.createPDF(user.email);
+  createUserPdf(@Body() userInfo: FindUserDto) {
+    return this.usersService.createPDF(userInfo.email);
   }
 
   @Patch('/user/lastname')
-  editUserLastName(@Body() userEmail: string, newLastName: string) {
-    return this.usersService.editUserLastName(userEmail, newLastName);
+  @HttpCode(HttpStatus.OK)
+  editUserLastName(@Body() userInfo: EditLastNameDto) {
+    return this.usersService.editUserLastName(
+      userInfo.email,
+      userInfo.newLastName,
+    );
   }
 
   @Patch('/user/firstname')
-  editUserFirstName(@Body() userEmail: string, newFirstName: string) {
-    return this.usersService.editUserFirstName(userEmail, newFirstName);
+  @HttpCode(HttpStatus.OK)
+  editUserFirstName(@Body() userInfo: EditFirstNameDto) {
+    return this.usersService.editUserFirstName(
+      userInfo.email,
+      userInfo.newFirstName,
+    );
   }
 
   @Get('/user')
   @HttpCode(HttpStatus.OK)
-  getUser(@Body() userEmail: string) {
-    return this.usersService.getUserByEmail(userEmail);
+  getUser(@Body() userInfo: FindUserDto) {
+    return this.usersService.getUserByEmail(userInfo.email);
   }
 
   @Get('/users')

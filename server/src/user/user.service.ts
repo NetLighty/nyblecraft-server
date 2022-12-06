@@ -26,7 +26,7 @@ export class UsersService {
   }
 
   async setUserImage(userEmail: string, image: Express.Multer.File) {
-    const imageName = await this.fileService.createFile(image);
+    const imageName = await this.fileService.createImage(image);
     await this.userRepository.update(
       { image: imageName },
       { where: { email: userEmail } },
@@ -46,7 +46,7 @@ export class UsersService {
           imageName: user.image,
         },
         async (chunk) => {
-          chunks.push(Buffer.from(chunk));
+          chunks.push(chunk);
         },
         async () => {
           const pdfData = Buffer.concat(chunks);
@@ -56,9 +56,9 @@ export class UsersService {
           );
         },
       );
-      return JSON.stringify('true');
+      return JSON.stringify(true);
     } else {
-      return JSON.stringify('false');
+      return JSON.stringify(false);
     }
   }
 

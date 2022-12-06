@@ -7,15 +7,20 @@ import { CreatePDFDto } from 'src/files/dto/create-pdf.dto';
 
 @Injectable()
 export class FilesService {
-  async createFile(file: Express.Multer.File): Promise<string> {
+  createFolder(folderName: string) {
+    const folderPath = path.resolve(__dirname, '..', `static\\${folderName}`);
+    fs.mkdirSync(folderPath, { recursive: true });
+  }
+
+  async createImage(file: Express.Multer.File): Promise<string> {
     try {
-      const fileName = uuid.v4() + '.' + file.originalname.split('.').pop();
-      const filePath = path.resolve(__dirname, '..', 'static');
-      if (!fs.existsSync(filePath)) {
-        fs.mkdirSync(filePath, { recursive: true });
+      const imageName = uuid.v4() + '.' + file.originalname.split('.').pop();
+      const imagePath = path.resolve(__dirname, '..', 'static\\images');
+      if (!fs.existsSync(imagePath)) {
+        this.createFolder('images');
       }
-      fs.writeFileSync(path.join(filePath, fileName), file.buffer);
-      return fileName;
+      fs.writeFileSync(path.join(imagePath, imageName), file.buffer);
+      return imageName;
     } catch {
       throw new HttpException(
         'Error during the file upload',
@@ -26,22 +31,34 @@ export class FilesService {
 
   async buildPDF(
     userInfo: CreatePDFDto,
-    dataCallback: (...args: any[]) => void,
-    endCallback: (pdfPath: string) => void,
+    dataCallback: (chunk: Buffer) => void,
+    endCallback: () => void,
   ) {
-    const imagePath =
-      path.resolve(__dirname, '..', 'static') + '\\' + userInfo.imageName;
-    const pdfPath = path.resolve(__dirname, '..', `static\\${uuid.v4()}.pdf`);
-    const doc = new PDFDocument();
-    doc.fontSize(25).text(`${userInfo.firstName} ${userInfo.lastName}`);
-    doc.image(imagePath, {
-      width: 500,
-      align: 'center',
-    });
-    // doc.setEncoding('binary');
-    doc.pipe(fs.createWriteStream(pdfPath));
-    doc.on('data', dataCallback);
-    doc.on('end', () => endCallback(pdfPath));
-    doc.end();
+    try {
+      const imagePath =
+        path.resolve(__dirname, '..', 'static') +
+        '\\images\\' +
+        userInfo.imageName;
+      const pdfName = uuid.v4() + '.pdf';
+      const pdfFolderPath = path.resolve(__dirname, '..', 'static\\pdfs');
+      if (!fs.existsSync(pdfFolderPath)) {
+        this.createFolder('pdfs');
+      }
+      const doc = new PDFDocument();
+      doc.fontSize(25).text(`${userInfo.firstName} ${userInfo.lastName}`);
+      doc.image(imagePath, {
+        width: 500,
+        align: 'center',
+      });
+      doc.pipe(fs.createWriteStream(pdfFolderPath + '\\' + pdfName));
+      doc.on('data', dataCallback);
+      doc.on('end', endCallback);
+      doc.end();
+    } catch {
+      throw new HttpException(
+        'Error during the pdf creation',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 }
